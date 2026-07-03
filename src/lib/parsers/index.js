@@ -91,7 +91,13 @@ function parsePosMonthly(rows, fileName) {
       date,
       granularity: 'monthly',
       rawProductText: skuName,
-      parsedProduct: { baseProductName, color, size, brand: row[brandIdx], category: row[deptIdx] },
+      parsedProduct: { 
+        baseProductName, 
+        color, 
+        size, 
+        brand: row[brandIdx] || guessBrand(skuName), 
+        category: row[deptIdx] || guessCategory(skuName) 
+      },
       quantity: parseInt(String(row[qtyIdx]).replace(/,/g, ''), 10) || 0,
       grossSales: parseFloat(String(row[grossIdx]).replace(/,/g, '')) || 0,
       netSales: parseFloat(String(row[netIdx]).replace(/,/g, '')) || 0,
@@ -140,7 +146,13 @@ function parseEcOrder(rows, fileName) {
       date: new Date(row[dateIdx] || Date.now()),
       granularity: 'daily',
       rawProductText: productCode || productName,
-      parsedProduct: { baseProductName, color, size },
+      parsedProduct: { 
+        baseProductName, 
+        color, 
+        size,
+        brand: guessBrand(productCode || productName),
+        category: guessCategory(productCode || productName)
+      },
       quantity: parseInt(String(row[qtyIdx]).replace(/,/g, ''), 10) || 0,
       grossSales: parseFloat(String(row[priceIdx]).replace(/,/g, '')) * (parseInt(row[qtyIdx], 10) || 1) || 0,
       netSales: parseFloat(String(row[totalIdx]).replace(/,/g, '')) || 0,
@@ -151,8 +163,22 @@ function parseEcOrder(rows, fileName) {
   return transactions;
 }
 
+function guessCategory(productName) {
+  const upper = (productName || '').toUpperCase();
+  if (upper.includes('VFF') || upper.includes('V-') || upper.includes('KSO') || upper.includes('BIKILA') || upper.includes('TREK')) return 'VFF';
+  if (upper.includes('FUROSHIKI')) return 'Furoshiki';
+  if (upper.includes('SOCK') || upper.includes('ソックス')) return 'Accessories';
+  return null;
+}
+
+function guessBrand(productName) {
+  const upper = (productName || '').toUpperCase();
+  if (upper.includes('VFF') || upper.includes('V-') || upper.includes('FUROSHIKI') || upper.includes('VIBRAM')) return 'Vibram';
+  if (upper.includes('BFJ')) return 'BFJ';
+  return null;
+}
+
 function parseManualSheet(rows, fileName, metadata) {
-  // Manual sheets usually have headers in row 0 or 1
   let headerRowIdx = 0;
   for (let i = 0; i < Math.min(rows.length, 5); i++) {
     const rowStr = rows[i].map(c => String(c).toLowerCase()).join(',');
@@ -189,7 +215,13 @@ function parseManualSheet(rows, fileName, metadata) {
       date: new Date(row[dateIdx] || Date.now()),
       granularity: 'daily',
       rawProductText: productName,
-      parsedProduct: { baseProductName, color, size },
+      parsedProduct: { 
+        baseProductName, 
+        color, 
+        size,
+        brand: guessBrand(productName),
+        category: guessCategory(productName)
+      },
       quantity: parseInt(String(row[qtyIdx]).replace(/,/g, ''), 10) || 0,
       grossSales: parseFloat(String(row[grossIdx]).replace(/,/g, '')) || 0,
       netSales: parseFloat(String(row[netIdx]).replace(/,/g, '')) || 0,

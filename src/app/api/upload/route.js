@@ -36,6 +36,14 @@ export async function POST(request) {
           product = await prisma.product.create({
             data: { baseProductName, brand, category }
           });
+        } else if ((!product.category && category) || (!product.brand && brand)) {
+          product = await prisma.product.update({
+            where: { id: product.id },
+            data: { 
+              brand: product.brand || brand,
+              category: product.category || category
+            }
+          });
         }
 
         // Find or create variant
