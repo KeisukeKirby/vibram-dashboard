@@ -10,8 +10,8 @@ export async function GET(request) {
     const endDateStr = searchParams.get('endDate');
 
     const where = {};
-    if (store) where.storeName = store;
-    if (channel) where.salesChannel = channel;
+    if (store) where.store = store;
+    if (channel) where.channel = channel;
     
     if (startDateStr || endDateStr) {
       where.date = {};
@@ -19,11 +19,10 @@ export async function GET(request) {
       if (endDateStr) where.date.lte = new Date(endDateStr);
     }
 
-    const aggregations = await prisma.salesTransaction.aggregate({
+    const aggregations = await prisma.normalizedSale.aggregate({
       _sum: {
-        netSales: true,
+        amount: true,
         quantity: true,
-        discountAmount: true,
       },
       _count: {
         id: true,
@@ -32,9 +31,8 @@ export async function GET(request) {
     });
 
     return NextResponse.json({
-      totalSales: aggregations._sum.netSales || 0,
+      totalSales: aggregations._sum.amount || 0,
       totalQuantity: aggregations._sum.quantity || 0,
-      totalDiscount: aggregations._sum.discountAmount || 0,
       transactions: aggregations._count.id || 0,
     });
   } catch (error) {

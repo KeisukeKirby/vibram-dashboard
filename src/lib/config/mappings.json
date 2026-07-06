@@ -1,0 +1,20 @@
+{
+  "order_detail": {
+    "channel_to_store": {
+      "Shopee VFF": "Shopee",
+      "Lazada": "Lazada",
+      "POS": "Barefoot Park"
+    }
+  },
+  "daily_sale_information": {
+    "store_mapping": {
+      "CENTRAL WORLD-CDS": "Central World",
+      "CHIDLOM": "Chid Lom",
+      "CHIDLOM ONLINE": "Chid Lom",
+      "LARDPRAO": "Lat Phrao"
+    }
+  },
+  "coollabo": {
+    "fixed_store": "Siam Discovery"
+  }
+}

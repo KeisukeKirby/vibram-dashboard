@@ -6,7 +6,6 @@ export async function POST(request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
-    const storeName = formData.get('storeName');
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -16,97 +15,38 @@ export async function POST(request) {
     const buffer = Buffer.from(bytes);
 
     // Process file using our parsers
-    const transactions = await processFile(buffer, file.name, { storeName });
+    const transactions = await processFile(buffer, file.name);
 
-    let successCount = 0;
-    let failCount = 0;
+    if (transactions.length === 0) {
+      return NextResponse.json({ error: 'No valid data found in file' }, { status: 400 });
+    }
 
-    // We can't do parallel Promise.all safely with SQLite in large chunks without locking issues, 
-    // doing a sequential loop for simplicity in local environments. 
-    for (const tx of transactions) {
-      try {
-        const { baseProductName, color, size, brand, category } = tx.parsedProduct;
-        
-        // Find or create product
-        let product = await prisma.product.findUnique({
-          where: { baseProductName }
-        });
-
-        if (!product) {
-          product = await prisma.product.create({
-            data: { baseProductName, brand, category }
-          });
-        } else if ((!product.category && category) || (!product.brand && brand)) {
-          product = await prisma.product.update({
-            where: { id: product.id },
-            data: { 
-              brand: product.brand || brand,
-              category: product.category || category
-            }
-          });
-        }
-
-        // Find or create variant
-        const variants = await prisma.productVariant.findMany({
-          where: { productId: product.id, color, size }
-        });
-
-        let variant;
-        if (variants.length > 0) {
-          variant = variants[0];
-        } else {
-          variant = await prisma.productVariant.create({
-            data: { productId: product.id, color, size }
-          });
-        }
-
-        // Avoid exact duplicates (same file, date, store, variant, qty) for idempotency
-        // This is a simple duplicate check
-        const existingTx = await prisma.salesTransaction.findFirst({
-          where: {
-            sourceFileName: tx.sourceFileName,
-            date: tx.date,
-            storeName: tx.storeName,
-            variantId: variant.id,
-            quantity: tx.quantity
-          }
-        });
-
-        if (!existingTx) {
-          await prisma.salesTransaction.create({
-            data: {
-              sourceType: tx.sourceType,
-              sourceFileName: tx.sourceFileName,
-              storeName: tx.storeName,
-              salesChannel: tx.salesChannel,
-              date: tx.date,
-              granularity: tx.granularity,
-              variantId: variant.id,
-              rawProductText: tx.rawProductText,
-              quantity: tx.quantity,
-              grossSales: tx.grossSales,
-              netSales: tx.netSales
-            }
-          });
-          successCount++;
-        }
-      } catch (err) {
-        console.error('Error inserting tx:', err);
-        failCount++;
-      }
+    // Insert to NormalizedSale
+    let inserted = 0;
+    let failed = 0;
+    
+    // We can use createMany for bulk insert
+    try {
+      const res = await prisma.normalizedSale.createMany({
+        data: transactions
+      });
+      inserted = res.count;
+    } catch (e) {
+      console.error('Failed to create many:', e);
+      failed = transactions.length;
     }
 
     await prisma.importLog.create({
       data: {
         fileName: file.name,
-        sourceType: transactions.length > 0 ? transactions[0].sourceType : 'unknown',
-        status: failCount === 0 ? 'SUCCESS' : (successCount > 0 ? 'PARTIAL' : 'FAILED'),
+        sourceType: transactions.length > 0 ? transactions[0].source_type : 'unknown',
+        status: failed === 0 ? 'SUCCESS' : (inserted > 0 ? 'PARTIAL' : 'FAILED'),
         totalRows: transactions.length,
-        failedRows: failCount
+        failedRows: failed
       }
     });
 
-    return NextResponse.json({ success: true, inserted: successCount, failed: failCount });
+    return NextResponse.json({ success: true, inserted, failed });
   } catch (error) {
     console.error('Upload Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

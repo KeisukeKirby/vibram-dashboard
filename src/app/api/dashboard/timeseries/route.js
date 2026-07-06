@@ -6,35 +6,24 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const store = searchParams.get('store');
     const channel = searchParams.get('channel');
+    const startDateStr = searchParams.get('startDate');
+    const endDateStr = searchParams.get('endDate');
     
     const where = {};
-    if (store) where.storeName = store;
-    if (channel) where.salesChannel = channel;
+    if (store) where.store = store;
+    if (channel) where.channel = channel;
+    
+    if (startDateStr || endDateStr) {
+      where.date = {};
+      if (startDateStr) where.date.gte = new Date(startDateStr);
+      if (endDateStr) where.date.lte = new Date(endDateStr);
+    }
 
-    // Prisma doesn't natively support easy GROUP BY date with different granularities in SQLite
-    // We'll fetch the data and group in memory for this scale, or use raw SQL.
-    // For SQLite, raw SQL is better:
-    
-    let query = `
-      SELECT 
-        date, 
-        SUM(netSales) as totalSales, 
-        SUM(quantity) as totalQty 
-      FROM SalesTransaction
-      WHERE 1=1
-    `;
-    
-    // Simple parameterized query simulation (Prisma $queryRaw is safer)
-    const conditions = [];
-    if (store) conditions.push(prisma.sql`storeName = ${store}`);
-    if (channel) conditions.push(prisma.sql`salesChannel = ${channel}`);
-    
-    // But since Prisma's queryRaw requires careful syntax with dynamic WHERE, we will fetch and group in memory.
-    const transactions = await prisma.salesTransaction.findMany({
+    const transactions = await prisma.normalizedSale.findMany({
       where,
       select: {
         date: true,
-        netSales: true,
+        amount: true,
         quantity: true,
       },
       orderBy: { date: 'asc' }
@@ -46,7 +35,7 @@ export async function GET(request) {
       if (!acc[dateKey]) {
         acc[dateKey] = { date: dateKey, totalSales: 0, totalQty: 0 };
       }
-      acc[dateKey].totalSales += (tx.netSales || 0);
+      acc[dateKey].totalSales += (tx.amount || 0);
       acc[dateKey].totalQty += (tx.quantity || 0);
       return acc;
     }, {});
