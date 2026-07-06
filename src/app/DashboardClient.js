@@ -52,7 +52,7 @@ export default function DashboardClient() {
   return (
     <div className={styles.dashboard}>
       <header className={styles.header}>
-        <h1 className={styles.title}>VIBRAM Intelligence</h1>
+        <h1 className={styles.title}>BFT Sales & Stock Report</h1>
         <div className={styles.actions}>
           <button className={styles.btnPrimary} onClick={() => setIsUploadOpen(true)}>
             Upload Data

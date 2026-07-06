@@ -2,8 +2,8 @@ import './globals.css';
 import DashboardClient from './DashboardClient';
 
 export const metadata = {
-  title: 'VIBRAM/VFF Analytics',
-  description: 'Sales & Inventory Dashboard for VIBRAM/VFF',
+  title: 'BFT Sales & Stock Report',
+  description: 'Sales & Inventory Dashboard',
 };
 
 export default function RootLayout({ children }) {
