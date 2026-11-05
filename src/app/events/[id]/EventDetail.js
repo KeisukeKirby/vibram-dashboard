@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { upload } from '@vercel/blob/client';
 import styles from '../events.module.css';
+import { downloadHref, downloadZip, fileName } from '../mediaDownload';
 import EventForm from '../EventForm';
 import { eventStatus, eventDays, formatRange, baht } from '../eventUtils';
 
@@ -17,6 +18,7 @@ export default function EventDetail({ id }) {
   const [lightbox, setLightbox] = useState(null); // index into visible media
   const [uploading, setUploading] = useState(null); // { done, total, name }
   const [uploadError, setUploadError] = useState('');
+  const [zipping, setZipping] = useState(null); // { done, total }
 
   const load = useCallback(async () => {
     try {
@@ -92,6 +94,18 @@ export default function EventDetail({ id }) {
     await fetch(`/api/events/${id}/media/${m.id}`, { method: 'DELETE' });
     setLightbox(null);
     load();
+  };
+
+  const downloadAll = async () => {
+    const label = { all: 'all', image: 'photos', video: 'videos' }[tab];
+    const name = `${event.slug || event.id}_${label}.zip`;
+    setUploadError('');
+    try {
+      await downloadZip(visible, name, (done, total) => setZipping({ done, total }));
+    } catch (e) {
+      setUploadError(e.message || 'ダウンロードに失敗しました');
+    }
+    setZipping(null);
   };
 
   const removeEvent = async () => {
@@ -181,6 +195,9 @@ export default function EventDetail({ id }) {
             <button className={tab === 'image' ? styles.segOn : ''} onClick={() => setTab('image')}>写真 {photos}</button>
             <button className={tab === 'video' ? styles.segOn : ''} onClick={() => setTab('video')}>動画 {videos}</button>
           </div>
+          <button className={styles.btnGhost} onClick={downloadAll} disabled={!visible.length || !!zipping}>
+            {zipping ? `ZIP作成中 ${zipping.done}/${zipping.total}` : `⬇ まとめてダウンロード（${visible.length}）`}
+          </button>
           <label className={styles.btnPrimary}>
             ＋ 追加
             <input
@@ -217,6 +234,13 @@ export default function EventDetail({ id }) {
                   )}
                   {m.type === 'video' && <span className={styles.play}>▶</span>}
                 </button>
+                <a
+                  className={styles.thumbDl}
+                  href={downloadHref(m.url)}
+                  download={fileName(m.url)}
+                  title="ダウンロード"
+                  aria-label="ダウンロード"
+                >⬇</a>
                 {m.caption && <figcaption>{m.caption}</figcaption>}
               </figure>
             ))}
@@ -303,6 +327,7 @@ function Lightbox({ item, index, total, onClose, onPrev, onNext, onCaption, onDe
         <div className={styles.lbBar}>
           <span className={styles.lbCaption}>{index + 1} / {total}　{item.caption || ''}</span>
           <div className={styles.actions}>
+            <a className={styles.btnPrimary} href={downloadHref(item.url)} download={fileName(item.url)}>⬇ ダウンロード</a>
             <a className={styles.btnGhost} href={item.url} target="_blank" rel="noreferrer">原寸</a>
             <button className={styles.btnGhost} onClick={onCaption}>キャプション</button>
             <button className={styles.btnDanger} onClick={onDelete}>削除</button>
