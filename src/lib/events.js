@@ -13,11 +13,16 @@ export function formatDay(date) {
 }
 
 let seeded = false;
+// Insert the bundled seed events when the table is empty. For seed events that
+// already exist (matched by slug), add any newly bundled photos/videos.
 export async function ensureSeedEvents() {
   if (seeded) return;
-  const count = await prisma.event.count();
-  if (count === 0) {
-    for (const { media, ...ev } of seedEvents) {
+  const empty = (await prisma.event.count()) === 0;
+  for (const { media, ...ev } of seedEvents) {
+    const existing = empty
+      ? null
+      : await prisma.event.findUnique({ where: { slug: ev.slug }, include: { media: true } });
+    if (empty) {
       await prisma.event.create({
         data: {
           ...ev,
@@ -26,6 +31,18 @@ export async function ensureSeedEvents() {
           media: { create: media.map((m, i) => ({ ...m, sortOrder: i })) },
         },
       });
+    } else if (existing) {
+      const have = new Set(existing.media.map((m) => m.url));
+      const missing = media.map((m, i) => ({ ...m, sortOrder: i })).filter((m) => !have.has(m.url));
+      if (missing.length) {
+        await prisma.eventMedia.createMany({ data: missing.map((m) => ({ ...m, eventId: existing.id })) });
+        // Keep bundled files in seed order; user uploads stay after them.
+        await prisma.$transaction(
+          media.map((m, i) =>
+            prisma.eventMedia.updateMany({ where: { eventId: existing.id, url: m.url }, data: { sortOrder: i } })
+          )
+        );
+      }
     }
   }
   seeded = true;
