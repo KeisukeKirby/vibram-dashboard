@@ -43,3 +43,34 @@ model ImportLog {
   failedRows        Int
   errorMessage      String?
 }
+
+model Event {
+  id         String       @id @default(cuid())
+  slug       String?      @unique
+  title      String
+  venue      String
+  location   String?
+  startDate  DateTime
+  endDate    DateTime
+  brands     String[]
+  promotions String?
+  notes      String?
+  storeKey   String?      // matches NormalizedSale.store to show sales during the event period
+  media      EventMedia[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model EventMedia {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  type      String   // 'image' | 'video'
+  url       String
+  posterUrl String?
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+}

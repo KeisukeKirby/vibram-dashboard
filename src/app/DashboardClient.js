@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import styles from './DashboardClient.module.css';
 import UploadModal from '@/components/UploadModal';
 import UploadHistory from '@/components/UploadHistory';
@@ -75,6 +76,9 @@ export default function DashboardClient() {
       <header className={styles.header}>
         <h1 className={styles.title}>BFT Sales & Stock Report</h1>
         <div className={styles.actions} style={{ display: 'flex', gap: '10px' }}>
+          <Link href="/events" className={styles.btnSecondary}>
+            Events
+          </Link>
           <button className={styles.btnSecondary} onClick={() => setIsHistoryOpen(true)}>
             History
           </button>
