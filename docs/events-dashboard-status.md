@@ -1,19 +1,20 @@
-# イベント記録ダッシュボード — 作業状況メモ（2026-11-05 時点）
+# イベント記録ダッシュボード — 作業状況メモ（2026-11-09 時点）
 
-ブランチ: `feature/event-records`（main へは未マージ・PR 未作成）
+## 公開先
+- URL: https://event-records-dashboard-barefootinc-th.vercel.app （Barefootinc TH メンバーのみ・Vercel ログインが必要）
+- Vercel プロジェクト: `event-records-dashboard`（team: barefootinc-th）
+- 本番は `feature/event-records` ブランチから手動デプロイ中（main へは未マージ）
+
+## 設定
+- DB: Neon `neon-bole-book`（既存の売上データ入り）の中の **`event_records` スキーマ** を使用（環境変数 `DB_SCHEMA=event_records`）。`public` の既存テーブルには触れない。
+- 写真・動画: Vercel Blob `event-records-media`（`BLOB_READ_WRITE_TOKEN`）
+- トップページは `/events` へリダイレクト（`NEXT_PUBLIC_EVENTS_HOME=1`）
 
 ## できていること
-- `/events` 一覧：カード／一覧表、検索、状態・年フィルタ、集計（イベント数・開催中・出店日数・写真動画数）
-- `/events/[id]` 詳細：概要、プロモーション、メモ、会期中の売上（店舗を紐付けた場合）、写真・動画ギャラリー
-- イベントの追加・編集・削除、写真・動画のアップロード（Vercel Blob）
-- 写真・動画のダウンロード
-  - サムネイル右上の ⬇ で1件ずつ
-  - 拡大表示の「⬇ ダウンロード」
-  - 「まとめてダウンロード」で表示中のタブ（すべて／写真／動画）を ZIP で一括
+- イベント一覧・詳細・追加/編集/削除、写真・動画のアップロード、個別/ZIP ダウンロード
 - 初期データ：Terminal 21 Rama 3 ポップアップ（2026/10/17–11/1、写真19・動画5）
 
-## 再開時にやること
-1. Vercel の Storage で Blob ストアを作成し、プロジェクトに接続する（画面からのアップロードに必要）
-2. 編集画面の「売上データの店舗」で、Terminal 21 の売上が入っている店舗名を選ぶ
-3. 写真から読み取って書いたメモ・割引内容を確認して、必要なら修正する
-4. 問題なければ main へマージ（PR 作成）
+## 残り
+- 写真から読み取って書いたメモ・割引内容・キャプションの確認
+- main へマージ（その後は main への push で自動デプロイ）
+- 会期中の売上：この DB の `event_records` には売上データが無いため空欄
