@@ -65,7 +65,9 @@ export default function EventsList() {
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
-          <Link href="/" className={styles.back}>← Sales & Stock Report</Link>
+          {process.env.NEXT_PUBLIC_EVENTS_HOME !== '1' && (
+            <Link href="/" className={styles.back}>← Sales & Stock Report</Link>
+          )}
           <h1 className={styles.title}>イベント記録</h1>
         </div>
         <button className={styles.btnPrimary} onClick={() => setCreating(true)}>＋ イベントを追加</button>
